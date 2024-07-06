@@ -1,19 +1,19 @@
 #include "FluxFunctions.h"
 
 template<class T>
-FluxFunction<T>::FluxFunction()
+inline FluxFunction<T>::FluxFunction()
 {
   
-};
+}
 
 template<class T>
-LinearFlux<T>::LinearFlux()
+inline LinearFlux<T>::LinearFlux()
 {
-  c = 1.;
-};
+  c = 1.0;
+}
 
 template<class T>
-void LinearFlux<T>::computeFlux(DataStruct<T> &U, DataStruct<T> &F)
+inline void LinearFlux<T>::computeFlux(DataStruct<T> &U, DataStruct<T> &F)
 {
   T *dataU = U.getData();
   T *dataF = F.getData();
@@ -21,14 +21,14 @@ void LinearFlux<T>::computeFlux(DataStruct<T> &U, DataStruct<T> &F)
   for(int n = 0; n < U.getSize(); n++)
   {
     dataF[n] = c * dataU[n];
-  };
-};
+  }
+}
 
 template<class T>
-T LinearFlux<T>::computeFlux(const T &Ui)
+inline T LinearFlux<T>::computeFlux(const T &Ui)
 {
   return c * Ui;
-};
+}
 
 template class FluxFunction<float>;
 template class FluxFunction<double>;
