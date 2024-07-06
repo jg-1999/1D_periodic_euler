@@ -2,131 +2,106 @@
 #include <cassert>
 
 template<class T>
-RungeKutta4<T>::RungeKutta4(DataStruct<T> &_Un):
-Un(_Un)
+RungeKutta4<T>::RungeKutta4(DataStruct<T> &_Un) : Un(_Un)
 {
   nSteps = 4;
   currentStep = 0;
 
-  coeffsA = new T[4];
-  coeffsB = new T[4];
-  coeffsA[0] = 0.;
-  coeffsA[1] = 0.5;
-  coeffsA[2] = 0.5;
-  coeffsA[3] = 1.;
-  coeffsB[0] = 1.;
-  coeffsB[1] = 2.;
-  coeffsB[2] = 2.;
-  coeffsB[3] = 1.;
+  coeffs = new T[2];
+  coeffs[0] = 0.5;
+  coeffs[1] = 0.5;
 
-  fi = new DataStruct<T>[nSteps];
-
-  fi[0].setSize(Un.getSize());
-  fi[1].setSize(Un.getSize());
-  fi[2].setSize(Un.getSize());
-  fi[3].setSize(Un.getSize());
+  currentFi.setSize(Un.getSize());
+  accumulatedFi.setSize(Un.getSize());
 
   Ui.setSize(Un.getSize());
-};
+}
 
 template<class T>
 RungeKutta4<T>::~RungeKutta4()
 {
-  delete[] fi;
-  delete[] coeffsA;
-  delete[] coeffsB;
-};
+  delete[] coeffs;
+}
 
 template<class T>
 int RungeKutta4<T>::getNumSteps()
 {
   return nSteps;
-};
+}
 
 template<class T>
 void RungeKutta4<T>::initRK()
 {
   currentStep = 0;
-};
+  accumulatedFi.zero();  
+}
 
 template<class T>
 void RungeKutta4<T>::stepUi(T dt)
 {
   assert(currentStep < nSteps);
 
-  if(currentStep == 0)
-  {
-    T *dataUi = Ui.getData();
-    const T *dataU  = Un.getData();
+  T *dataUi = Ui.getData();
+  const T *dataU = Un.getData();
 
-    for(int n = 0; n < Ui.getSize(); n++)
+  if (currentStep == 0)
+  {
+    for (int n = 0; n < Ui.getSize(); n++)
     {
       dataUi[n] = dataU[n];
     }
   }
   else
   {
-    T *datafi = fi[currentStep-1].getData();
-    T *dataUi = Ui.getData();
-    const T *dataU  = Un.getData();
+    T *dataFi = currentFi.getData();
 
-    for(int n = 0; n < Ui.getSize(); n++)
+    for (int n = 0; n < Ui.getSize(); n++)
     {
-      dataUi[n] = dataU[n] + coeffsA[currentStep]*dt* datafi[n];
+      dataUi[n] = dataU[n] + coeffs[0] * dt * dataFi[n];
     }
   }
-};
+}
 
 template<class T>
 void RungeKutta4<T>::finalizeRK(const T dt)
 {
   T *dataUn = Un.getData();
   T *dataUi = Ui.getData();
+  const T b1 = 2.0;
+  const T b2 = 1.0;
 
-  // set Ui to 0
-  for(int n = 0; n < Ui.getSize(); n++)
+  for (int n = 0; n < Ui.getSize(); n++)
   {
-    dataUi[n] = 0.;
-  }
-  
-  for(int s = 0; s < nSteps; s++)
-  {
-    const T *dataFi = fi[s].getData();
-    const T b = coeffsB[s];
-
-    for(int n = 0; n < Ui.getSize(); n++)
-    {
-      dataUi[n] += b * dataFi[n];
-    }
+    dataUi[n] = b1 * currentFi.getData()[n] + b2 * accumulatedFi.getData()[n];
   }
 
   const T oneDiv6 = 1. / 6.;
-  for(int n = 0; n < Ui.getSize(); n++)
+  for (int n = 0; n < Ui.getSize(); n++)
   {
     dataUn[n] += dt * oneDiv6 * dataUi[n];
   }
-};
+}
 
 template<class T>
 void RungeKutta4<T>::setFi(DataStruct<T> &_F)
 {
-  T *dataFi = fi[currentStep].getData();
-  const T *dataF  = _F.getData();
+  T *dataFi = currentFi.getData();
+  const T *dataF = _F.getData();
 
-  for(int n = 0; n < Ui.getSize(); n++)
+  for (int n = 0; n < Ui.getSize(); n++)
   {
     dataFi[n] = dataF[n];
+    accumulatedFi.getData()[n] += coeffs[1] * dataF[n];
   }
 
   currentStep++;
-};
+}
 
 template<class T>
 DataStruct<T> * RungeKutta4<T>::currentU()
 {
   return &Ui;
-};
-
+}
 
 template class RungeKutta4<float>;
 template class RungeKutta4<double>;
